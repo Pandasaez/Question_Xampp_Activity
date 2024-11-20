@@ -1,4 +1,11 @@
 <?php
+$host = 'localhost';
+$user = 'root'; 
+$pass = '';    
+$dbname = 'questionnaire';
+$port = '3307'; 
+
+
 // Define questions and answers
 $questions = [
     [
