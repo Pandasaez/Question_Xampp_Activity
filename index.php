@@ -5,7 +5,6 @@ $pass = '';
 $dbname = 'questionnaire';
 $port = '3307';
 
-
 $conn = mysqli_connect($host, $user, $pass, $dbname, $port);
 
 if (!$conn) {
@@ -34,7 +33,7 @@ echo "Connected Successfully!";
 //     ]
 // ];
 
-// Fetching the Questions from the Databaase
+// Fetching the Questions from the Database
 $questions = [];
 $sql = "SELECT * FROM questions";
 $result = $conn->query($sql);
@@ -51,18 +50,25 @@ if ($result->num_rows > 0) {
     die("No questions found in the database.");
 }
 
-$conn->close();
-
 // Initialize score
 $score = 0;
 
 // Check if form is submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $player_name = ($_POST['player_name']);
     foreach ($questions as $index => $question) {
         if (isset($_POST["question$index"]) && $_POST["question$index"] == $question['answer']) {
             $score++;
         }
     }
+
+    // Saving the score to the LEaderBaord
+    $stmt = $conn->prepare("INSERT INTO leaderboard (player_name, score) VALUES (?, ?)");
+    $stmt->bind_param("si", $player_name, $score);
+    $stmt->execute();
+    $stmt->close();
+
+    // Display score
     echo "<h2>Your Score: $score/" . count($questions) . "</h2>";
     echo '<a href="index.php">Try Again</a>';
     exit;
@@ -79,6 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
     <h1>PHP Quiz</h1>
     <form method="post" action="">
+        <label for="player_name">Enter Your Name:</label>
+        <input type="text" id="player_name" name="player_name" required><br><br>
         <?php foreach ($questions as $index => $question): ?>
             <fieldset>
                 <legend><?php echo $question['question']; ?></legend>
@@ -92,5 +100,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php endforeach; ?>
         <input type="submit" value="Submit">
     </form>
+
+    <h2>Leader Board</h2>
+    <table border="1">
+        <tr>
+            <th>Rank</th>
+            <th>Player Name</th>
+            <th>Score</th>
+            <th>Date Played</th>
+        </tr>
+        <?php
+        // Fetch top scores from leaderboard
+        $sql = "SELECT player_name, score, date_played FROM leaderboard ORDER BY score DESC, date_played ASC LIMIT 10";
+        $result = $conn->query($sql);
+        $rank = 1;
+
+        if ($result->num_rows > 0) {
+            while ($row = $result->fetch_assoc()) {
+                echo "<tr>";
+                echo "<td>" . $rank++ . "</td>";
+                echo "<td>" . ($row['player_name']) . "</td>";
+                echo "<td>" . $row['score'] . "</td>";
+                echo "<td>" . $row['date_played'] . "</td>";
+                echo "</tr>";
+            }
+        } 
+        ?>
+    </table>
 </body>
 </html>
+
+<?php
+$conn->close();
+?>
